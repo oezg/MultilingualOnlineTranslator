@@ -2,24 +2,39 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def get_target_language_and_word() -> tuple:
-    print('Type "en" if you want to translate from French into English, or "fr" if you want to translate from English into French:')
-    target_lang = input()
-    print("Type the word you want to translate:")
-    word = input()
-    print(f'You chose "{target_lang}" as a language to translate "{word}".')
-    return target_lang, word
+supported_languages = {
+    '1': 'Arabic',
+    '2': 'German',
+    '3': 'English',
+    '4': 'Spanish',
+    '5': 'French',
+    '6': 'Hebrew',
+    '7': 'Japanese',
+    '8': 'Dutch',
+    '9': 'Polish',
+    '10': 'Portuguese',
+    '11': 'Romanian',
+    '12': 'Russian',
+    '13': 'Turkish'
+}
 
 
-def get_soup(target_lang: str, word: str) -> str:
-    source, target = "english", "french"
-    if target_lang == "en":
-        target, source = source, target
-    url = f"https://context.reverso.net/translation/{source}-{target}/{word}"
+def get_language(target=False) -> str:
+    if target:
+        print('Type the number of language you want to translate to: ')
+    else:
+        print('Type the number of your language: ')
+    try:
+        return supported_languages[input()]
+    except KeyError:
+        print('wrong input')
+
+
+def get_soup(source: str, target: str, word: str) -> str:
+    url = f"https://context.reverso.net/translation/{source.lower()}-{target.lower()}/{word.lower()}"
     headers = {'User-Agent': 'Mozilla/5.0'}
     response = requests.get(url, headers=headers)
     if response:
-        print(response.status_code, 'OK')
         return BeautifulSoup(response.content, 'html.parser')
 
 
@@ -33,20 +48,24 @@ def get_sentences(soup: BeautifulSoup) -> list:
     return [sentence.text.strip() for sentence in sentences]
 
 
+def introduction():
+    print("Hello, you're welcome to the translator. Translator supports: ")
+    print(*("{0}. {1}".format(k, v) for k, v in supported_languages.items()), sep='\n')
+
+
 def main():
-    target_lang, word = get_target_language_and_word()
-    soup = get_soup(target_lang, word)
+    introduction()
+    source_language = get_language()
+    target_language = get_language(target=True)
+    word = input("Type the word you want to translate:\n")
+    soup = get_soup(source_language, target_language, word)
     if soup:
-        if target_lang == "en":
-            target_lang = "English"
-        else:
-            target_lang = "French"
         print()
-        print(f'{target_lang} Translations')
+        print(f'{target_language} Translations')
         translations = get_translations(soup)
         print(*translations[:5], sep='\n')
         print()
-        print(f'{target_lang} Examples')
+        print(f'{target_language} Examples')
         sentences = get_sentences(soup)
         for i, sentence in enumerate(sentences[:10]):
             print(sentence)
