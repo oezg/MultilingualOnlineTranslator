@@ -8,3 +8,4 @@ The program prints 5 translations of the given word in the desired target langua
 If you want to see the translation of a word in all of the thirteen languages together, enter:   
 `python translator.py <source_language> all <word>`   
 The source of the translations and the example sentences is reverso.net.   
+![an example sentence](/El\ Interprete.png)
