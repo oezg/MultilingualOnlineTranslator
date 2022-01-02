@@ -2,55 +2,31 @@ import requests
 from bs4 import BeautifulSoup
 from sys import exit
 from collections import OrderedDict
+from argparse import ArgumentParser
 
 
-supported_languages = {
-    '1': 'Arabic',
-    '2': 'German',
-    '3': 'English',
-    '4': 'Spanish',
-    '5': 'French',
-    '6': 'Hebrew',
-    '7': 'Japanese',
-    '8': 'Dutch',
-    '9': 'Polish',
-    '10': 'Portuguese',
-    '11': 'Romanian',
-    '12': 'Russian',
-    '13': 'Turkish'
-}
-
-
-def get_language(target=False) -> str:
-    if target:
-        print("Type the number of language you want to translate to or '0' to translate to all languages: ")
-    else:
-        print('Type the number of your language: ')
-    number = input()
-    if number in supported_languages.keys():
-        return supported_languages[number]
-    elif target and number == "0":
-        return number
-    print('Wring input!')
-    exit()
+supported_languages = ('Arabic', 'German', 'English', 'Spanish', 'French', 'Hebrew', 'Japanese',
+                       'Dutch', 'Polish', 'Portuguese', 'Romanian', 'Russian', 'Turkish')
 
 
 def get_soup(source: str, target: str, word: str) -> BeautifulSoup:
     url = f"https://context.reverso.net/translation/{source.lower()}-{target.lower()}/{word.lower()}"
     headers = {'User-Agent': 'Mozilla/5.0'}
     response = requests.get(url, headers=headers)
-    if response:
+    if response.status_code == 200:
         return BeautifulSoup(response.content, 'html.parser')
-    print("There is a connection error. Please try again later!")
+    elif response.status_code == 404:
+        print("Sorry, unable to find {}".format(word))
+    else:
+        print("Something wrong with your internet connection")
     exit()
 
 
 def get_soups(source: str, word: str) -> OrderedDict:
     soups_dict = OrderedDict()
-    for language in supported_languages.values():
-        if language == source:
-            continue
-        soups_dict.update({language: get_soup(source=source, target=language, word=word)})
+    for language in supported_languages:
+        if language.lower() != source.lower():
+            soups_dict.update({language: get_soup(source=source, target=language, word=word)})
     return soups_dict
 
 
@@ -64,12 +40,7 @@ def get_sentences(soup: BeautifulSoup) -> list:
     return [sentence.text.strip() for sentence in sentences]
 
 
-def introduction() -> None:
-    print("Hello, you're welcome to the translator. Translator supports: ")
-    print(*("{0}. {1}".format(k, v) for k, v in supported_languages.items()), sep='\n')
-
-
-def text_translations(target_language: str, soup: BeautifulSoup, quantity=5) -> str:
+def text_translations(target_language: str, soup: BeautifulSoup, quantity: int = 5) -> str:
     text = f'\n{target_language} Translations\n'
     translations = get_translations(soup)
     text += '\n'.join(translations[:quantity])
@@ -82,21 +53,30 @@ def text_translations(target_language: str, soup: BeautifulSoup, quantity=5) -> 
     return text
 
 
+def validate(language: str) -> None:
+    if language.title() not in supported_languages:
+        print("Sorry, the program doesn't support {}".format(language))
+        exit()
+
+
 def main():
-    introduction()
-    source_language = get_language()
-    target_language = get_language(target=True)
-    word = input("Type the word you want to translate:\n")
+    parser = ArgumentParser("Prints translations of a given word.")
+    parser.add_argument("source_language")
+    parser.add_argument("target_language")
+    parser.add_argument("word")
+    args = parser.parse_args()
+    validate(args.source_language)
     text = ""
-    if target_language == "0":
-        soups = get_soups(source_language, word)
+    if args.target_language == "all":
+        soups = get_soups(args.source_language, args.word)
         for target, soup in soups.items():
             text += text_translations(target, soup, quantity=1)
     else:
-        soup = get_soup(source_language, target_language, word)
-        text = text_translations(target_language, soup)
+        validate(args.target_language)
+        soup = get_soup(args.source_language, args.target_language, args.word)
+        text = text_translations(args.target_language, soup)
     print(text)
-    with open(f'{word}.txt', 'w') as file_handle:
+    with open(f'{args.word}.txt', 'w') as file_handle:
         file_handle.write(text)
 
 
