@@ -31,7 +31,11 @@ def get_soups(source: str, word: str) -> OrderedDict:
 
 
 def get_translations(soup: BeautifulSoup) -> list:
-    translations = soup.find('div', {'id': 'translations-content'}).find_all('a')
+    try:
+        translations = soup.find('div', {'id': 'translations-content'}).find_all('a')
+    except AttributeError:
+        print('Sorry, translation in this language combination is not yet available')
+        exit()
     return [translation.text.strip() for translation in translations]
 
 
@@ -41,10 +45,10 @@ def get_sentences(soup: BeautifulSoup) -> list:
 
 
 def text_translations(target_language: str, soup: BeautifulSoup, quantity: int = 5) -> str:
-    text = f'\n{target_language} Translations\n'
+    text = f'\n{target_language.title()} Translations\n'
     translations = get_translations(soup)
     text += '\n'.join(translations[:quantity])
-    text += f'\n{target_language} Example{"s" if quantity > 1 else ""}\n'
+    text += f'\n\n{target_language.title()} Example{"s" if quantity > 1 else ""}\n'
     sentences = get_sentences(soup)
     for i, sentence in enumerate(sentences[:quantity*2]):
         text += sentence + '\n'
